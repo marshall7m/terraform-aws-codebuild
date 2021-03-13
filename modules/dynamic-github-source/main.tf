@@ -1,4 +1,7 @@
 locals {
+  queried_repos = [for repo in var.queried_repos:
+    merge(repo,{ query = "${repo.query} user:${data.github_user.current.login}" }) 
+    if length(regexall("user:.+", repo.query)) == 0]
   codebuild_artifacts = defaults(var.codebuild_artifacts, {
     type = "NO_ARTIFACTS"
   })
@@ -6,6 +9,7 @@ locals {
   #   compute_type = "BUILD_GENERAL1_SMALL"
   #   type = "LINUX_CONTAINER"
   #   image = "aws/codebuild/standard:3.0"
+  #   environment_variables = {}
   # })
 }
 
@@ -14,13 +18,13 @@ module "github_webhook" {
 
   api_name = var.api_name
   api_description = var.api_description
-  repo_queries = [for entry in var.queried_repos: 
+  queried_repos = [for entry in local.queried_repos: 
     {
       query = entry.query 
       events = [for filter in flatten(entry.filter_groups): filter.pattern if filter.type == "event"]
     }
   ]
-  repos = [for repo in var.named_repos: 
+  named_repos = [for repo in var.named_repos: 
     {
       name = repo.name 
       events = [for filter in flatten(repo.filter_groups): filter.pattern if filter.type == "event"]
@@ -30,7 +34,7 @@ module "github_webhook" {
   github_secret_ssm_value = var.github_secret_ssm_value
   github_secret_ssm_description = var.github_secret_ssm_description
   github_secret_ssm_tags = var.github_secret_ssm_tags
-  child_function_arn = module.lambda.function_arn
+  child_function_arn = "*"
 }
 
 module "lambda" {
@@ -43,12 +47,20 @@ module "lambda" {
   enable_cw_logs = true
   env_vars = {
     GITHUB_TOKEN_SSM_KEY = var.github_token_ssm_key
-    # FILTER_GROUPS = jsonencode({for repo in module.github_webhook.repos: repo.name => repo.filter_groups})
+    REPO_FILTER_GROUPS = jsonencode({for repo in flatten([for entity in concat(local.queried_repos, var.named_repos): [
+      # merge query matched repos with associated configuration
+      for r in module.github_webhook.repos:
+        merge(entity, r)
+      if try(r.query, null) == try(entity.query, "") || try(r.name, null) == try(entity.name, "")]]):
+      repo.name => repo.filter_groups})
     CODEBUILD_NAME = module.codebuild.name
   }
   custom_role_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
     aws_iam_policy.lambda.arn
+  ]
+  depends_on = [
+    module.github_webhook
   ]
 }
 
@@ -94,6 +106,7 @@ module "codebuild" {
     auth = {
       type = "OAUTH"
     }
+    location = module.github_webhook.repos[0].name 
     report_build_status = true
   }
 }
@@ -116,4 +129,8 @@ data "archive_file" "lambda_function" {
   type        = "zip"
   source_dir  = "${path.module}/function"
   output_path = "${path.module}/function.zip"
+}
+
+data "github_user" "current" {
+  username = ""
 }

@@ -76,6 +76,7 @@ variable "github_secret_ssm_tags" {
 # Github #
 
 variable "named_repos" {
+  description = "List of named repos to create github webhooks for and their respective filter groups used to select what type of activity will trigger the associated Codebuild"
   type = list(object({
     name = string
     filter_groups = list(list(object({
@@ -85,8 +86,9 @@ variable "named_repos" {
   }))
   default = []
 }
+
 variable "queried_repos" {
-  description = "Third-party source stage configurations. Each action represent one source"
+  description = "List of github queries to match repos to create github webhooks for and their respective filter groups used to select what type of activity will trigger the associated Codebuild"
   type = list(object({
     query                = string
     filter_groups = list(list(object({
@@ -164,8 +166,8 @@ variable "codebuild_environment" {
     type                        = optional(string)
     image_pull_credentials_type = optional(string)
     environment_variables = optional(list(object({
-      name  = optional(string)
-      value = optional(string)
+      name  = string
+      value = string
       type  = optional(string)
     })))
     privileged_mode = optional(bool)
