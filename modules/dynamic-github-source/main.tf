@@ -13,6 +13,9 @@ locals {
   # })
 }
 
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 module "github_webhook" {
   source = "github.com/marshall7m/terraform-aws-lambda/modules//agw-github-webhook"
 
@@ -30,11 +33,21 @@ module "github_webhook" {
       events = [for filter in flatten(repo.filter_groups): filter.pattern if filter.type == "event"]
     }
   ]
+  create_github_secret_ssm_param = var.create_github_secret_ssm_param
   github_secret_ssm_key = var.github_secret_ssm_key
   github_secret_ssm_value = var.github_secret_ssm_value
   github_secret_ssm_description = var.github_secret_ssm_description
   github_secret_ssm_tags = var.github_secret_ssm_tags
-  child_function_arn = "*"
+  child_function_arn = "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${var.function_name}"
+}
+
+resource "aws_lambda_function_event_invoke_config" "lambda" {
+  function_name = module.github_webhook.function_name
+  destination_config {
+    on_success {
+      destination = module.lambda.function_arn
+    }
+  }
 }
 
 module "lambda" {
@@ -106,7 +119,8 @@ module "codebuild" {
     auth = {
       type = "OAUTH"
     }
-    location = module.github_webhook.repos[0].name 
+    # location = module.github_webhook.repos[0].clone_url
+    location = "https://github.com/marshall7m/mut-dynamic-github-source-4.git"
     report_build_status = true
   }
 }

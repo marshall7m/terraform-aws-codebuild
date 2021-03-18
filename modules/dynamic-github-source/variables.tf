@@ -47,11 +47,16 @@ variable "github_token_ssm_tags" {
 
 ## github-secret ##
 
+variable "create_github_secret_ssm_param" {
+  description = "Determines if a SSM parameter should be created for github webhook secret"
+  type = bool
+  default = false
+}
+
 variable "github_secret_ssm_key" {
   description = "SSM parameter store key for github webhook secret. Secret used within Lambda function for Github payload validation."
   type        = string
-  default     = ""
-  sensitive   = true
+  default     = "github-webhook-secret"
 }
 
 variable "github_secret_ssm_value" {
