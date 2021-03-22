@@ -1,16 +1,12 @@
 locals {
-  queried_repos = [for repo in var.queried_repos:
-    merge(repo,{ query = "${repo.query} user:${data.github_user.current.login}" }) 
-    if length(regexall("user:.+", repo.query)) == 0]
   codebuild_artifacts = defaults(var.codebuild_artifacts, {
     type = "NO_ARTIFACTS"
   })
-  # codebuild_environment = defaults(var.codebuild_environment, {
-  #   compute_type = "BUILD_GENERAL1_SMALL"
-  #   type = "LINUX_CONTAINER"
-  #   image = "aws/codebuild/standard:3.0"
-  #   environment_variables = {}
-  # })
+  codebuild_environment = defaults(var.codebuild_environment, {
+    compute_type = "BUILD_GENERAL1_SMALL"
+    type = "LINUX_CONTAINER"
+    image = "aws/codebuild/standard:3.0"
+  })
 }
 
 data "aws_region" "current" {}
@@ -21,13 +17,7 @@ module "github_webhook" {
 
   api_name = var.api_name
   api_description = var.api_description
-  queried_repos = [for entry in local.queried_repos: 
-    {
-      query = entry.query 
-      events = [for filter in flatten(entry.filter_groups): filter.pattern if filter.type == "event"]
-    }
-  ]
-  named_repos = [for repo in var.named_repos: 
+  repos = [for repo in var.repos: 
     {
       name = repo.name 
       events = [for filter in flatten(repo.filter_groups): filter.pattern if filter.type == "event"]
@@ -60,20 +50,12 @@ module "lambda" {
   enable_cw_logs = true
   env_vars = {
     GITHUB_TOKEN_SSM_KEY = var.github_token_ssm_key
-    REPO_FILTER_GROUPS = jsonencode({for repo in flatten([for entity in concat(local.queried_repos, var.named_repos): [
-      # merge query matched repos with associated configuration
-      for r in module.github_webhook.repos:
-        merge(entity, r)
-      if try(r.query, null) == try(entity.query, "") || try(r.name, null) == try(entity.name, "")]]):
-      repo.name => repo.filter_groups})
+    REPO_FILTER_GROUPS = jsonencode({for repo in var.repos: repo.name => repo.filter_groups})
     CODEBUILD_NAME = module.codebuild.name
   }
   custom_role_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
     aws_iam_policy.lambda.arn
-  ]
-  depends_on = [
-    module.github_webhook
   ]
 }
 
@@ -108,21 +90,8 @@ module "codebuild" {
   source = "..//main"
   name = var.codebuild_name
   artifacts = local.codebuild_artifacts
-  # environment = local.codebuild_environment
-  environment = {
-    compute_type = "BUILD_GENERAL1_SMALL"
-    type = "LINUX_CONTAINER"
-    image = "aws/codebuild/standard:3.0"
-  }
-  build_source = {
-    type = "GITHUB"
-    auth = {
-      type = "OAUTH"
-    }
-    # location = module.github_webhook.repos[0].clone_url
-    location = "https://github.com/marshall7m/mut-dynamic-github-source-4.git"
-    report_build_status = true
-  }
+  environment = local.codebuild_environment
+  build_source = var.build_source
 }
 
 resource "aws_ssm_parameter" "github_token" {

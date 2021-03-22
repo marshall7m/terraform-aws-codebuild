@@ -1,5 +1,5 @@
 terraform {
-  required_version = "0.14.8"
+  required_version = "0.15.0"
   required_providers {
     random = {
       source = "hashicorp/random"
@@ -9,26 +9,60 @@ terraform {
       source = "apparentlymart/testing"
       version = "0.0.2"
     }
+    github = {
+        source = "integrations/github"
+        version = "4.5.2"
+    }
   }
 }
 
-variable "github_token" {
-    type = string
-    sensitive = true
+locals {
+    mut = basename(path.cwd)
 }
 
-variable "github_secret_ssm_value" {
-    type = string
-    sensitive = true
+provider "random" {}
+
+resource "random_password" "this" {
+  length = 20
 }
 
-module "dynamic_codebuild" {
+resource "random_id" "default" {
+    byte_length = 8
+}
+
+resource "github_repository" "test" {
+  name        = "${local.mut}-${random_id.default.id}"
+  description = "Test repo for mut: ${local.mut}"
+  auto_init   = true
+  visibility  = "public"
+}
+
+resource "github_repository_file" "test" {
+  repository          = github_repository.test.name
+  branch              = "master"
+  file                = "test_two.txt"
+  content             = "used to trigger repo's webhook for testing associated mut: ${local.mut}"
+  commit_message      = "test file"
+  overwrite_on_create = true
+  depends_on = [
+    module.mut_dynamic_github_source
+  ]
+}
+
+module "mut_dynamic_github_source" {
     source = "../../modules//dynamic-github-source"
-    github_secret_ssm_value = var.github_secret_ssm_value
+    create_github_secret_ssm_param = true
+    github_secret_ssm_value = random_password.this.result
     github_token_ssm_value = var.github_token
-    named_repos = [
+    codebuild_name = "${local.mut}-${random_id.default.id}"
+    build_source = {
+      type = "NO_SOURCE"
+      buildspec = file("${path.module}/buildspec.yaml")
+      report_build_status = true
+    }
+    repos = [
         {
-            name = "terraform-aws-codebuild"
+            name = github_repository.test.name
             filter_groups = [
                 [
                     {
@@ -43,27 +77,17 @@ module "dynamic_codebuild" {
                 [
                     {
                         type = "event"
-                        pattern = "pull_request"
+                        pattern = "push"
                     },
                     {
                         type = "file_path"
-                        pattern = "\\/.?\\.tf$"
+                        pattern = "\\/?.?\\.txt$"
                     }
                 ]
             ]
         }
     ]
-    queried_repos = [
-        {
-            query = "foo in:name"
-            filter_groups = [
-                [
-                    {
-                        type = "event"
-                        pattern = "pull_request"
-                    }
-                ]
-            ]
-        }
+    depends_on = [
+      github_repository.test
     ]
 }

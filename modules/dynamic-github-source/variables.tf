@@ -80,22 +80,10 @@ variable "github_secret_ssm_tags" {
 
 # Github #
 
-variable "named_repos" {
+variable "repos" {
   description = "List of named repos to create github webhooks for and their respective filter groups used to select what type of activity will trigger the associated Codebuild"
   type = list(object({
     name = string
-    filter_groups = list(list(object({
-      type = string
-      pattern = string
-    })))
-  }))
-  default = []
-}
-
-variable "queried_repos" {
-  description = "List of github queries to match repos to create github webhooks for and their respective filter groups used to select what type of activity will trigger the associated Codebuild"
-  type = list(object({
-    query                = string
     filter_groups = list(list(object({
       type = string
       pattern = string
@@ -109,7 +97,7 @@ variable "queried_repos" {
 variable "function_name" {
   description = "Name of AWS Lambda function"
   type = string
-  default = "github-webhook-trigger"
+  default = "custom-codebuild-github-webhook-trigger"
 }
 
 # Codebuild #
@@ -117,7 +105,6 @@ variable "function_name" {
 variable "codebuild_name" {
   description = "Name of Codebuild project"
   type = string
-  default = "tests"
 } 
 
 variable "codebuild_description" {
@@ -183,6 +170,28 @@ variable "codebuild_environment" {
     }))
   })
   default = {}
+}
+
+variable "build_source" {
+    description = <<EOF
+Source configuration that will be loaded into the CodeBuild project's buildspec
+see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codebuild_project#argument-reference
+    EOF
+    type = object({
+        type = optional(string)
+        auth = optional(object({
+            type = optional(string)
+            resource = optional(string)
+        }))
+        buildspec = optional(string)
+        git_clone_depth = optional(string)
+        git_submodules_config = optional(object({
+            fetch_submodules = bool
+        }))
+        insecure_ssl = optional(bool)
+        location = optional(string)
+        report_build_status = optional(bool)
+    })
 }
 
 variable "github_token" {
