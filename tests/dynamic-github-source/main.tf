@@ -40,7 +40,7 @@ resource "github_repository" "test" {
 resource "github_repository_file" "test" {
   repository          = github_repository.test.name
   branch              = "master"
-  file                = "test_two.txt"
+  file                = "test.txt"
   content             = "used to trigger repo's webhook for testing associated mut: ${local.mut}"
   commit_message      = "test file"
   overwrite_on_create = true
@@ -81,7 +81,7 @@ module "mut_dynamic_github_source" {
                     },
                     {
                         type = "file_path"
-                        pattern = "\\/?.?\\.txt$"
+                        pattern = "\\.*\\.txt$"
                     }
                 ]
             ]
@@ -90,4 +90,8 @@ module "mut_dynamic_github_source" {
     depends_on = [
       github_repository.test
     ]
+}
+
+output "webhook_function_arn" {
+  value = module.mut_dynamic_github_source.webhook_function_arn
 }

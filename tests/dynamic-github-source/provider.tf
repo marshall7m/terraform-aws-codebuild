@@ -11,6 +11,3 @@ provider "github" {
     owner = "marshall7m"
 }
 
-
-provider "random" {}
-

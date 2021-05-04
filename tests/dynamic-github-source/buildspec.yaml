@@ -2,10 +2,4 @@ version: 0.2
 phases:
   build:
     commands:
-      - echo "Environment Variables provided by terraform module: terraform-aws-codebuild/dynamic-github-source"
-      - echo "GITHUB_TOKEN_SSM_KEY"
-      - echo "$GITHUB_TOKEN_SSM_KEY"
-      - echo "REPO_FILTER_GROUPS"
-      - echo "$REPO_FILTER_GROUPS"
-      - echo "CODEBUILD_NAME"
-      - echo "$CODEBUILD_NAME"
+      - ls

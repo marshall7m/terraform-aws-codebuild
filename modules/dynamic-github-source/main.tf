@@ -28,7 +28,7 @@ module "github_webhook" {
   github_secret_ssm_value = var.github_secret_ssm_value
   github_secret_ssm_description = var.github_secret_ssm_description
   github_secret_ssm_tags = var.github_secret_ssm_tags
-  child_function_arn = "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${var.function_name}"
+  lambda_destination_arns = ["arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${var.function_name}"]
 }
 
 resource "aws_lambda_function_event_invoke_config" "lambda" {
@@ -50,12 +50,20 @@ module "lambda" {
   enable_cw_logs = true
   env_vars = {
     GITHUB_TOKEN_SSM_KEY = var.github_token_ssm_key
-    REPO_FILTER_GROUPS = jsonencode({for repo in var.repos: repo.name => repo.filter_groups})
     CODEBUILD_NAME = module.codebuild.name
   }
   custom_role_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
     aws_iam_policy.lambda.arn
+  ]
+  lambda_layers = [
+    {
+      filename            = data.archive_file.lambda_deps.output_path
+      name          = "${var.function_name}-deps"
+      runtimes = ["python3.8"]
+      source_code_hash    = data.archive_file.lambda_deps.output_base64sha256
+      description         = "Dependencies for lambda function: ${var.function_name}"
+    }
   ]
 }
 
@@ -112,6 +120,19 @@ data "archive_file" "lambda_function" {
   type        = "zip"
   source_dir  = "${path.module}/function"
   output_path = "${path.module}/function.zip"
+}
+
+#using lambda layer file for filter_groups given lambda functions have a size limit of 4KB for env vars
+resource "local_file" "filter_groups" {
+    content     = jsonencode({for repo in var.repos: repo.name => repo.filter_groups})
+    filename = "${path.module}/deps/filter_groups.json"
+}
+
+data "archive_file" "lambda_deps" {
+  type        = "zip"
+  source_dir  = "${path.module}/deps"
+  output_path = "${path.module}/lambda_deps.zip"
+  depends_on = [local_file.filter_groups]
 }
 
 data "github_user" "current" {
