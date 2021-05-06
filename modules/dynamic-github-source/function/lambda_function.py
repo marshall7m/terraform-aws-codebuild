@@ -7,6 +7,7 @@ import re
 import ast
 import collections.abc
 import inspect
+import operator
 
 log = logging.getLogger(__name__)
 ssm = boto3.client('ssm')
@@ -72,69 +73,101 @@ def validate_filter_groups(filter_groups):
     # TODO: create if https://github.com/hashicorp/terraform/pull/25088 is not merged in near future
     # PR will allow terraform level assertions for filter_groups
     pass
-
-def validate_push(payload, event, filter_groups, repo):
-
-    for group in filter_groups:
-        for f in group:
-            valid = False
-            filter_type = f['type']
-            if filter_type == 'file_path':
-                #gets filenames of files that changed from base commit
-                diff_paths = [path.filename for path in repo.compare(payload['before'], payload['after']).files]
-                for filename in diff_paths:
-                    if re.search(f['pattern'], filename):
-                        valid = True
-                        break
-            elif filter_type == 'commit_message':
-                valid = re.search(f['pattern'], payload['hook']['last_response']['message'])
-            elif filter_type == 'base_ref':
-                valid = re.search(f['pattern'], payload['ref'])
-            elif filter_type == 'actor_account_id':
-                valid = re.search(f['pattern'], payload['sender']['id'])
-            elif filter_type == 'event':
-                if event in f['pattern'].split(','):
-                    valid = True
-            else:
-                raise ServerException(f'invalid filter type: {filter_type}')
-            #stops checking the rest of filters within group
-            if not valid:
-                break
-    return valid
-
-def validate_pr(payload, event, filter_groups, repo):
     
+def validate_push(payload, event, filter_groups, repo):
+    #gets filenames of files that changed from base commit
+    diff_paths = [path.filename for path in repo.compare(payload['before'], payload['after']).files]
+    
+    valid = False
     for group in filter_groups:
         for f in group:
-            valid = False
-            filter_type = f['type']
-            if filter_type == 'file_path':
-                diff_paths = [path.filename for path in repo.compare(
-                    payload['pull_request']['base']['sha'], 
-                    payload['pull_request']['head']['sha']
-                )]
-                for path in diff_paths:
-                    if re.search(f['pattern'], path):
-                        valid = True
-                        break
-            elif filter_type == 'commit_message':
-                valid = re.search(f['pattern'], payload['hook']['last_response']['message'])
-            elif filter_type == 'base_ref':
-                valid = re.search(f['pattern'], payload['pull_request']['base']['ref'])
-            elif filter_type == 'head_ref':
-                valid = re.search(f['pattern'], payload['pull_request']['head']['ref'])
-            elif filter_type == 'actor_account_id':
-                valid = re.search(f['pattern'], payload['sender']['id'])
-            elif filter_type == 'event':
-                if event in f['pattern'].split(','):
-                    valid = True
-            else:
-                raise ServerException(f'invalid filter type: {filter_type}')
-            #stops checking the rest of filters within group
-            if not valid:
+            if f['exclude_matched_filter']:
+                valid = operator.not_(validate_push_filter(f, payload, diff_paths))
+            # if filter is invalid, continue to next filter group
+            if valid == False:
                 break
+        # if all filters returned true from `validate_push_filter()`, skip other filter groups and return true
+        if valid == True:
+            break
     return valid
 
+def validate_push_filter(filter_entry, payload, diff_paths):
+    for pattern in filter_entry['file_paths']:
+        for filename in diff_paths:
+            if re.search(pattern, filename):
+                break
+            else:
+                return False
+    for pattern in filter_entry['commit_messages']:
+        if re.search(pattern, payload['hook']['last_response']['message']):
+            break
+        else:
+            return False
+    for pattern in filter_entry['base_refs']:
+        if re.search(filter_entry['pattern'], payload['ref']):
+            break
+        else:
+            return False
+    for pattern in filter_entry['actor_account_ids']:
+        if re.search(filter_entry['pattern'], payload['sender']['id']):
+            break
+        else:
+            return False
+    if event in filter_entry['events']:
+        return False
+
+def validate_pr_filter(filter_entry, payload, diff_paths):
+    for pattern in filter_entry['file_paths']:
+        for filename in diff_paths:
+            if re.search(pattern, filename):
+                break
+            else:
+                return False
+    for pattern in filter_entry['commit_messages']:
+        if re.search(pattern, payload['hook']['last_response']['message']):
+            break
+        else:
+            return False
+    for pattern in filter_entry['base_refs']:
+        if re.search(filter_entry['pattern'], payload['pull_request']['base']['ref']):
+            break
+        else:
+            return False
+    for pattern in filter_entry['head_refs']:
+        if re.search(filter_entry['pattern'], payload['pull_request']['head']['ref']):
+            break
+        else:
+            return False
+    for pattern in filter_entry['actor_account_ids']:
+        if re.search(filter_entry['pattern'], payload['sender']['id']):
+            break
+        else:
+            return False
+    if event not in filter_entry['events']:
+        return False
+    if payload['action'] not in filter_entry['pr_actions']:
+        return False
+        
+def validate_pr(payload, event, filter_groups, repo):
+    #gets filenames of files that changed from base commit
+    #TODO: Catch PRs with no difference in files
+    diff_paths = [path.filename for path in repo.compare(
+        payload['pull_request']['base']['sha'], 
+        payload['pull_request']['head']['sha']
+    )]
+
+    valid = False
+    for group in filter_groups:
+        for f in group:
+            valid = validate_pr_filter(f, payload, diff_paths)
+            # if filter is invalid, continue to next filter group
+            if valid == False:
+                break
+        # if all filters returned true from `validate_pr_filter()`, skip other filter groups and return true
+        if valid == True:
+            break
+    return valid
+    
 class LambdaException(Exception):
     pass
 

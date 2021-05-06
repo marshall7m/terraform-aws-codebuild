@@ -1,23 +1,5 @@
-terraform {
-  required_version = "0.15.0"
-  required_providers {
-    random = {
-      source = "hashicorp/random"
-      version = "3.1.0"
-    }
-    testing = {
-      source = "apparentlymart/testing"
-      version = "0.0.2"
-    }
-    github = {
-        source = "integrations/github"
-        version = "4.5.2"
-    }
-  }
-}
-
 locals {
-    mut = basename(path.cwd)
+  mut = basename(path.cwd)
 }
 
 provider "random" {}
@@ -27,7 +9,7 @@ resource "random_password" "this" {
 }
 
 resource "random_id" "default" {
-    byte_length = 8
+  byte_length = 8
 }
 
 resource "github_repository" "test" {
@@ -50,48 +32,75 @@ resource "github_repository_file" "test" {
 }
 
 module "mut_dynamic_github_source" {
-    source = "../../modules//dynamic-github-source"
-    create_github_secret_ssm_param = true
-    github_secret_ssm_value = random_password.this.result
-    github_token_ssm_value = var.github_token
-    codebuild_name = "${local.mut}-${random_id.default.id}"
-    build_source = {
-      type = "NO_SOURCE"
-      buildspec = file("${path.module}/buildspec.yaml")
-      report_build_status = true
+  source                         = "../../modules//dynamic-github-source"
+  create_github_secret_ssm_param = true
+  github_secret_ssm_value        = random_password.this.result
+  github_token_ssm_value         = var.github_token
+  codebuild_name                 = "${local.mut}-${random_id.default.id}"
+  build_source = {
+    type                = "NO_SOURCE"
+    buildspec           = file("${path.module}/buildspec.yaml")
+    report_build_status = true
+  }
+  repos = [
+    {
+      name = github_repository.test.name
+      filter_groups = [
+        [
+          {
+            events = ["push"]
+          },
+          {
+            file_paths = ["CHANGELOG.md"]
+          }
+        ],
+        [
+          {
+            events = ["push"]
+          },
+          {
+            file_paths = ["\\.*\\.txt$"]
+          }
+        ]
+      ]
     }
-    repos = [
-        {
-            name = github_repository.test.name
-            filter_groups = [
-                [
-                    {
-                        type = "event"
-                        pattern = "push"
-                    },
-                    {
-                        type = "file_path"
-                        pattern = "CHANGELOG.md"
-                    }
-                ],
-                [
-                    {
-                        type = "event"
-                        pattern = "push"
-                    },
-                    {
-                        type = "file_path"
-                        pattern = "\\.*\\.txt$"
-                    }
-                ]
-            ]
-        }
-    ]
-    depends_on = [
-      github_repository.test
-    ]
+  ]
+  depends_on = [
+    github_repository.test
+  ]
 }
 
-output "webhook_function_arn" {
-  value = module.mut_dynamic_github_source.webhook_function_arn
+output "api_invoke_url" {
+  value = module.mut_dynamic_github_source.api_invoke_url
 }
+
+# data "aws_lambda_invocation" "not_sha_signed" {
+#   function_name = module.mut_dynamic_github_source.payload_validator_function_arn
+
+#   input = jsonencode(
+#     {
+#       "headers" = {
+#         "X-Hub-Signature-256" = sha256("test")
+#         "X-GitHub-Event": "push"
+#       }
+#       "body" = {}
+#     }
+#   )
+# }
+
+# data "aws_caller_identity" "current" {}
+
+# data "bash_script" "example" {
+#   source = <<EOF
+#   aws sts assume-role ${aws_caller_identity.current.arn}
+#   aws lambda invoke --function-name ${module.mut_dynamic_github_source.payload_validator_function_arn} --payload ${jsonencode(
+#     {
+#       "headers" = {
+#         "X-Hub-Signature-256" = sha256("test")
+#         "X-GitHub-Event": "push"
+#       }
+#       "body" = {}
+#     }
+#   )}
+#   EOF
+# }

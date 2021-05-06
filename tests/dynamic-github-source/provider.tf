@@ -2,12 +2,12 @@
 provider "testing" {}
 
 provider "aws" {
-  region = "us-west-2"  
+  region  = "us-west-2"
   profile = "sandbox-admin"
 }
 
 
 provider "github" {
-    owner = "marshall7m"
+  owner = "marshall7m"
 }
 
