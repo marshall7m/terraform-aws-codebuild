@@ -56,7 +56,10 @@ module "mut_dynamic_github_source" {
         ],
         [
           {
-            events = ["push"]
+            events = ["pull_request"]
+            pr_actions = ["opened", "edited"]
+            file_paths = ["\\.*\\.py$"]
+            head_refs = ["test"]
           },
           {
             file_paths = ["\\.*\\.txt$"]

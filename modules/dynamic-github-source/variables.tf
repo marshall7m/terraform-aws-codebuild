@@ -81,7 +81,22 @@ variable "github_secret_ssm_tags" {
 # Github #
 
 variable "repos" {
-  description = "List of named repos to create github webhooks for and their respective filter groups used to select what type of activity will trigger the associated Codebuild"
+  description = <<EOF
+List of named repos to create github webhooks for and their respective filter groups used to select
+what type of activity will trigger the associated Codebuild.
+Params:
+  `filter_groups` : {
+    `events` - List of Github Webhook events that will invoke the API 
+    `pr_actions` - List of pull request actions (e.g. opened, edited, reopened, closed). See more under the action key at: https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads#pull_request
+    `base_refs` - List of base refs
+    `head_refs` - List of head refs
+    `actor_account_ids` - List of Github user IDs
+    `commit_messages` - List of commit messages
+    `file_paths` - List of file paths
+    `exclude_matched_filter` - If set to true, Codebuild project will not be triggered by this filter if it is matched
+  }
+EOF
+
   type = list(object({
     name = string
     filter_groups = list(list(object({

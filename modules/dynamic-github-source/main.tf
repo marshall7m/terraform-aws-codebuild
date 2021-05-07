@@ -8,8 +8,8 @@ locals {
     image        = "aws/codebuild/standard:3.0"
   })
 
-  repos = [for repo in var.repos : merge(
-    [for filter_group in repo.filter_groups :
+  repos = [for repo in var.repos : merge({
+    filter_groups = [for filter_group in repo.filter_groups :
       [for filter in filter_group :
         defaults(filter, {
           events                 = ""
@@ -22,7 +22,25 @@ locals {
           exclude_matched_filter = false
         })
       ]
-    ], repo)
+    ]}, repo)
+  ]
+}
+
+output "test" {
+  value = [for repo in var.repos : [for filter_group in repo.filter_groups :
+      [for filter in filter_group :
+        defaults(filter, {
+          events                 = ""
+          pr_actions             = ""
+          base_refs              = ""
+          head_refs              = ""
+          actor_account_ids      = ""
+          commit_messages        = ""
+          file_paths             = ""
+          exclude_matched_filter = false
+        })
+      ]
+    ]
   ]
 }
 
@@ -34,11 +52,11 @@ module "github_webhook" {
 
   api_name        = var.api_name
   api_description = var.api_description
-  repos = [for repo in var.repos :
+  repos = [for repo in local.repos :
     {
       name = repo.name
       events = distinct(flatten([for filter in flatten(repo.filter_groups) :
-      filter.events if filter.exclude_matched_filter != true]))
+      coalesce(filter.events, []) if filter.exclude_matched_filter != true]))
     }
   ]
   create_github_secret_ssm_param  = var.create_github_secret_ssm_param
@@ -148,3 +166,4 @@ data "archive_file" "lambda_deps" {
 data "github_user" "current" {
   username = ""
 }
+

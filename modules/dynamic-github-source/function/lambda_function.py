@@ -14,18 +14,22 @@ ssm = boto3.client('ssm')
 cb = boto3.client('codebuild')
 def lambda_handler(event, context):
     payload_body = json.loads(event['requestPayload']['body'])
-    try:
-        valid = validate_payload(
+    valid = validate_payload(
             payload_body,
             event['requestPayload']['headers']['X-GitHub-Event']
         )
-    except Exception as e:
-        raise LambdaException(json.dumps(
-            {
-                "type": e.__class__.__name__,
-                "message": str(e)
-            }
-        ))
+    # try:
+    #     valid = validate_payload(
+    #         payload_body,
+    #         event['requestPayload']['headers']['X-GitHub-Event']
+    #     )
+    # except Exception as e:
+    #     raise LambdaException(json.dumps(
+    #         {
+    #             "type": e.__class__.__name__,
+    #             "message": str(e)
+    #         }
+    #     ))
 
     print('Starting CodeBuild project: ', os.environ['CODEBUILD_NAME'])
     try:
@@ -154,7 +158,7 @@ def validate_pr(payload, event, filter_groups, repo):
     diff_paths = [path.filename for path in repo.compare(
         payload['pull_request']['base']['sha'], 
         payload['pull_request']['head']['sha']
-    )]
+    ).files]
 
     valid = False
     for group in filter_groups:
