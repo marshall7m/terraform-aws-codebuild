@@ -17,3 +17,7 @@ output "github_token_ssm_key" {
 output "codebuild_arn" {
   value = module.codebuild.arn
 }
+
+output "repo_cfg" {
+  value = local.repos
+}

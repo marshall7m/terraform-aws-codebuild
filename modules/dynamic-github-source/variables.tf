@@ -23,13 +23,13 @@ variable "common_tags" {
 variable "github_token_ssm_description" {
   description = "Github token SSM parameter description"
   type        = string
-  default     = "Github token to allow CodeBuild to clone target repos"
+  default     = "Github token to allow CodeBuild to clone target repos" #tfsec:ignore:GEN001
 }
 
 variable "github_token_ssm_key" {
   description = "AWS SSM Parameter Store key used to retrieve or create the sensitive Github personal token to allow Codebuild project to clone target Github repos"
   type        = string
-  default     = "github-token-codebuild-clone-access"
+  default     = "github-token-codebuild-clone-access" #tfsec:ignore:GEN001
 }
 
 variable "github_token_ssm_value" {
@@ -56,7 +56,7 @@ variable "create_github_secret_ssm_param" {
 variable "github_secret_ssm_key" {
   description = "SSM parameter store key for github webhook secret. Secret used within Lambda function for Github payload validation."
   type        = string
-  default     = "github-webhook-secret"
+  default     = "github-webhook-secret" #tfsec:ignore:GEN001 #tfsec:ignore:GEN003
 }
 
 variable "github_secret_ssm_value" {
@@ -69,7 +69,7 @@ variable "github_secret_ssm_value" {
 variable "github_secret_ssm_description" {
   description = "Github secret SSM parameter description"
   type        = string
-  default     = "Secret value for Github Webhooks"
+  default     = "Secret value for Github Webhooks" #tfsec:ignore:GEN001 #tfsec:ignore:GEN003
 }
 
 variable "github_secret_ssm_tags" {
@@ -85,8 +85,10 @@ variable "repos" {
 List of named repos to create github webhooks for and their respective filter groups used to select
 what type of activity will trigger the associated Codebuild.
 Params:
-  `filter_groups` : {
-    `events` - List of Github Webhook events that will invoke the API 
+  `name`: Repository name
+  `codebuild_cfg`: CodeBuild configurations specifically for the repository
+  `filter_groups`: {
+    `events` - List of Github Webhook events that will invoke the API. Currently only supports: `push` and `pull_request`.
     `pr_actions` - List of pull request actions (e.g. opened, edited, reopened, closed). See more under the action key at: https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads#pull_request
     `base_refs` - List of base refs
     `head_refs` - List of head refs
@@ -99,6 +101,62 @@ EOF
 
   type = list(object({
     name = string
+
+    codebuild_cfg = optional(object({
+      buildspec = optional(string)
+      timeout   = optional(string)
+      cache = optional(object({
+        type     = optional(string)
+        location = optional(string)
+        modes    = optional(list(string))
+      }))
+      report_build_status = optional(bool)
+      environment_type    = optional(string)
+      compute_type        = optional(string)
+      image               = optional(string)
+      environment_variables = optional(list(object({
+        name  = string
+        value = string
+        type  = optional(string)
+      })))
+      privileged_mode = optional(bool)
+      certificate     = optional(string)
+      artifacts = optional(object({
+        type                   = optional(string)
+        artifact_identifier    = optional(string)
+        encryption_disabled    = optional(bool)
+        override_artifact_name = optional(bool)
+        location               = optional(string)
+        name                   = optional(string)
+        namespace_type         = optional(string)
+        packaging              = optional(string)
+        path                   = optional(string)
+      }))
+      secondary_artifacts = optional(object({
+        type                   = optional(string)
+        artifact_identifier    = optional(string)
+        encryption_disabled    = optional(bool)
+        override_artifact_name = optional(bool)
+        location               = optional(string)
+        name                   = optional(string)
+        namespace_type         = optional(string)
+        packaging              = optional(string)
+        path                   = optional(string)
+      }))
+      role_arn = optional(string)
+      logs_cfg = optional(object({
+        cloudWatchLogs = optional(object({
+          status     = string
+          groupName  = string
+          streamName = string
+        }))
+        s3Logs = optional(object({
+          status   = string
+          location = string
+        }))
+      }))
+    }))
+
     filter_groups = list(list(object({
       events                 = optional(list(string))
       pr_actions             = optional(list(string))
@@ -140,25 +198,16 @@ variable "codebuild_assumable_role_arns" {
   default     = []
 }
 
-variable "codebuild_timeout" {
-  description = "Minutes till build run is timed out"
+variable "codebuild_buildspec" {
+  description = "Content of the default buildspec file"
   type        = string
   default     = null
 }
 
-variable "codebuild_source" {
-  description = <<EOF
-Source configuration that will be loaded into the CodeBuild project's buildspec
-see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codebuild_project#argument-reference
-  EOF
-  type = object({
-    buildspec       = optional(string)
-    git_clone_depth = optional(number)
-    git_submodules_config = optional(object({
-      fetch_submodules = optional(bool)
-    }))
-  })
-  default = {}
+variable "codebuild_timeout" {
+  description = "Minutes till build run is timed out"
+  type        = string
+  default     = null
 }
 
 variable "codebuild_cache" {
@@ -193,28 +242,6 @@ variable "codebuild_environment" {
   default = {}
 }
 
-variable "build_source" {
-  description = <<EOF
-Source configuration that will be loaded into the CodeBuild project's buildspec
-see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codebuild_project#argument-reference
-    EOF
-  type = object({
-    type = optional(string)
-    auth = optional(object({
-      type     = optional(string)
-      resource = optional(string)
-    }))
-    buildspec       = optional(string)
-    git_clone_depth = optional(string)
-    git_submodules_config = optional(object({
-      fetch_submodules = bool
-    }))
-    insecure_ssl        = optional(bool)
-    location            = optional(string)
-    report_build_status = optional(bool)
-  })
-}
-
 variable "github_token" {
   description = "Github Personal access token"
   type        = string
@@ -243,8 +270,18 @@ EOF
 
 variable "codebuild_secondary_artifacts" {
   description = "Build project's secondary output artifacts configuration"
-  type        = map(any)
-  default     = null
+  type = object({
+    type                   = optional(string)
+    artifact_identifier    = optional(string)
+    encryption_disabled    = optional(bool)
+    override_artifact_name = optional(bool)
+    location               = optional(string)
+    name                   = optional(string)
+    namespace_type         = optional(string)
+    packaging              = optional(string)
+    path                   = optional(string)
+  })
+  default = {}
 }
 
 variable "enable_codebuild_s3_logs" {

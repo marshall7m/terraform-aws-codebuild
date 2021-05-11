@@ -7,12 +7,10 @@ locals {
     type         = "LINUX_CONTAINER"
     image        = "aws/codebuild/standard:3.0"
   })
-
   default_repos = [for repo in var.repos : merge(repo, {
     filter_groups = [for filter_group in repo.filter_groups :
       [for filter in filter_group :
         defaults(filter, {
-          events                 = ""
           pr_actions             = ""
           base_refs              = ""
           head_refs              = ""
@@ -24,14 +22,30 @@ locals {
       ]
     ] })
   ]
+  codebuild_override_keys = {
+    buildspec             = "buildspecOverride"
+    timeout               = "timeoutInMinutesOverride"
+    cache                 = "cacheOverride"
+    privileged_mode       = "privilegedModeOverride"
+    report_build_status   = "reportBuildStatusOverride"
+    environment_type      = "environmentTypeOverride"
+    compute_type          = "computeTypeOverride"
+    image                 = "imageOverride"
+    environment_variables = "environmentVariablesOverride"
+    artifacts             = "artifactsOverride"
+    secondary_artifacts   = "secondaryArtifactsOverride"
+    role_arn              = "serviceRoleOverride"
+    logs_cfg              = "logsConfigOverride"
+    certificate           = "certificateOverride"
+  }
   repos = [for repo in local.default_repos : merge(repo, {
+    #pulls distinct filter group events to define the Github webhook events
     events = distinct(flatten([for filter in flatten(repo.filter_groups) :
     coalesce(filter.events, []) if filter.exclude_matched_filter != true]))
+    #converts terraform codebuild params to python boto3 start_build() params
+    codebuild_cfg = repo.codebuild_cfg != null ? { for key in keys(repo.codebuild_cfg) : local.codebuild_override_keys[key] => lookup(repo.codebuild_cfg, key) } : null
   })]
 }
-
-data "aws_region" "current" {}
-data "aws_caller_identity" "current" {}
 
 module "github_webhook" {
   source = "github.com/marshall7m/terraform-aws-lambda/modules//agw-github-webhook"
@@ -43,9 +57,9 @@ module "github_webhook" {
     events = repo.events
   }]
   create_github_secret_ssm_param  = var.create_github_secret_ssm_param
-  github_secret_ssm_key           = var.github_secret_ssm_key
+  github_secret_ssm_key           = var.github_secret_ssm_key #tfsec:ignore:GEN003
   github_secret_ssm_value         = var.github_secret_ssm_value
-  github_secret_ssm_description   = var.github_secret_ssm_description
+  github_secret_ssm_description   = var.github_secret_ssm_description #tfsec:ignore:GEN003
   github_secret_ssm_tags          = var.github_secret_ssm_tags
   lambda_success_destination_arns = [module.lambda.function_arn]
   async_lambda_invocation         = true
@@ -106,11 +120,14 @@ resource "aws_iam_policy" "lambda" {
 }
 
 module "codebuild" {
-  source       = "..//main"
-  name         = var.codebuild_name
-  artifacts    = local.codebuild_artifacts
-  environment  = local.codebuild_environment
-  build_source = var.build_source
+  source      = "..//main"
+  name        = var.codebuild_name
+  artifacts   = local.codebuild_artifacts
+  environment = local.codebuild_environment
+  build_source = {
+    buildspec = coalesce(var.codebuild_buildspec, file("${path.module}/buildspec_placeholder.yaml"))
+    type      = "NO_SOURCE"
+  }
 }
 
 resource "aws_ssm_parameter" "github_token" {
@@ -139,9 +156,10 @@ resource "local_file" "filter_groups" {
     repo.name => {
       events        = repo.events
       filter_groups = repo.filter_groups
+      codebuild_cfg = repo.codebuild_cfg
     }
   })
-  filename = "${path.module}/deps/repo_filters.json"
+  filename = "${path.module}/deps/repo_cfg.json"
 }
 
 data "archive_file" "lambda_deps" {
@@ -150,8 +168,3 @@ data "archive_file" "lambda_deps" {
   output_path = "${path.module}/lambda_deps.zip"
   depends_on  = [local_file.filter_groups]
 }
-
-data "github_user" "current" {
-  username = ""
-}
-

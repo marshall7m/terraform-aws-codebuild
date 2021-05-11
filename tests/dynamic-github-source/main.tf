@@ -19,12 +19,39 @@ resource "github_repository" "test" {
   visibility  = "public"
 }
 
-resource "github_repository_file" "test" {
+resource "github_repository_file" "test_pr" {
   repository          = github_repository.test.name
-  branch              = "master"
-  file                = "test.txt"
+  branch              = github_branch.test_pr.branch
+  file                = "test.py"
   content             = "used to trigger repo's webhook for testing associated mut: ${local.mut}"
   commit_message      = "test file"
+  overwrite_on_create = true
+  depends_on = [
+    module.mut_dynamic_github_source
+  ]
+}
+
+resource "github_branch" "test_pr" {
+  repository    = github_repository.test.name
+  branch        = "test-branch"
+  source_branch = "master"
+}
+
+resource "github_repository_pull_request" "test_pr" {
+  base_repository = github_repository.test.name
+  base_ref        = "master"
+  head_ref        = github_branch.test_pr.branch
+  title           = "Test webhook PR filter"
+  body            = "Check Cloudwatch logs for results"
+  depends_on      = [github_repository_file.test_pr]
+}
+
+resource "github_repository_file" "test_push" {
+  repository          = github_repository.test.name
+  branch              = "master"
+  file                = "CHANGELOG.md"
+  content             = "used to trigger repo's webhook for testing associated mut: ${local.mut}"
+  commit_message      = "test webhook push filter"
   overwrite_on_create = true
   depends_on = [
     module.mut_dynamic_github_source
@@ -37,14 +64,19 @@ module "mut_dynamic_github_source" {
   github_secret_ssm_value        = random_password.this.result
   github_token_ssm_value         = var.github_token
   codebuild_name                 = "${local.mut}-${random_id.default.id}"
-  build_source = {
-    type                = "NO_SOURCE"
-    buildspec           = file("${path.module}/buildspec.yaml")
-    report_build_status = true
-  }
+
   repos = [
     {
       name = github_repository.test.name
+      codebuild_cfg = {
+        environment_variables = [
+          {
+            name  = "TEST"
+            value = "FOO"
+            type  = "PLAINTEXT"
+          }
+        ]
+      }
       filter_groups = [
         [
           {
@@ -56,13 +88,10 @@ module "mut_dynamic_github_source" {
         ],
         [
           {
-            events = ["pull_request"]
-            pr_actions = ["opened", "edited"]
-            file_paths = ["\\.*\\.py$"]
-            head_refs = ["test"]
-          },
-          {
-            file_paths = ["\\.*\\.txt$"]
+            events     = ["pull_request"]
+            pr_actions = ["opened", "edited", "synchronize"]
+            file_paths = [".*\\.py$"]
+            head_refs  = ["test-branch"]
           }
         ]
       ]
@@ -77,33 +106,6 @@ output "api_invoke_url" {
   value = module.mut_dynamic_github_source.api_invoke_url
 }
 
-# data "aws_lambda_invocation" "not_sha_signed" {
-#   function_name = module.mut_dynamic_github_source.payload_validator_function_arn
-
-#   input = jsonencode(
-#     {
-#       "headers" = {
-#         "X-Hub-Signature-256" = sha256("test")
-#         "X-GitHub-Event": "push"
-#       }
-#       "body" = {}
-#     }
-#   )
-# }
-
-# data "aws_caller_identity" "current" {}
-
-# data "bash_script" "example" {
-#   source = <<EOF
-#   aws sts assume-role ${aws_caller_identity.current.arn}
-#   aws lambda invoke --function-name ${module.mut_dynamic_github_source.payload_validator_function_arn} --payload ${jsonencode(
-#     {
-#       "headers" = {
-#         "X-Hub-Signature-256" = sha256("test")
-#         "X-GitHub-Event": "push"
-#       }
-#       "body" = {}
-#     }
-#   )}
-#   EOF
-# }
+output "repo_cfg" {
+  value = module.mut_dynamic_github_source.repo_cfg
+}
