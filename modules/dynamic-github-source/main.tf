@@ -9,19 +9,12 @@ locals {
   })
   default_repos = [for repo in var.repos : merge(repo, {
     filter_groups = [for filter_group in repo.filter_groups :
-      [for filter in filter_group :
-        defaults(filter, {
-          pr_actions             = ""
-          base_refs              = ""
-          head_refs              = ""
-          actor_account_ids      = ""
-          commit_messages        = ""
-          file_paths             = ""
-          exclude_matched_filter = false
-        })
-      ]
-    ] })
-  ]
+      defaults(filter_group, {
+        exclude_matched_filter = false
+      })
+    ]
+  })]
+
   codebuild_override_keys = {
     buildspec             = "buildspecOverride"
     timeout               = "timeoutInMinutesOverride"
@@ -40,10 +33,10 @@ locals {
   }
   repos = [for repo in local.default_repos : merge(repo, {
     #pulls distinct filter group events to define the Github webhook events
-    events = distinct(flatten([for filter in flatten(repo.filter_groups) :
-    coalesce(filter.events, []) if filter.exclude_matched_filter != true]))
+    events = distinct(flatten([for filter_group in repo.filter_groups :
+    filter_group.events if filter_group.exclude_matched_filter != true]))
     #converts terraform codebuild params to python boto3 start_build() params
-    codebuild_cfg = repo.codebuild_cfg != null ? { for key in keys(repo.codebuild_cfg) : local.codebuild_override_keys[key] => lookup(repo.codebuild_cfg, key) } : null
+    codebuild_cfg = repo.codebuild_cfg != null ? { for key in keys(repo.codebuild_cfg) : local.codebuild_override_keys[key] => lookup(repo.codebuild_cfg, key) if lookup(repo.codebuild_cfg, key) != null } : null
   })]
 }
 

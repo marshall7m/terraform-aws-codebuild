@@ -157,8 +157,8 @@ EOF
       }))
     }))
 
-    filter_groups = list(list(object({
-      events                 = optional(list(string))
+    filter_groups = list(object({
+      events                 = list(string)
       pr_actions             = optional(list(string))
       base_refs              = optional(list(string))
       head_refs              = optional(list(string))
@@ -166,7 +166,7 @@ EOF
       commit_messages        = optional(list(string))
       file_paths             = optional(list(string))
       exclude_matched_filter = optional(bool)
-    })))
+    }))
   }))
   default = []
 }

@@ -64,7 +64,7 @@ module "mut_dynamic_github_source" {
   github_secret_ssm_value        = random_password.this.result
   github_token_ssm_value         = var.github_token
   codebuild_name                 = "${local.mut}-${random_id.default.id}"
-
+  codebuild_buildspec            = file("buildspec.yaml")
   repos = [
     {
       name = github_repository.test.name
@@ -78,22 +78,16 @@ module "mut_dynamic_github_source" {
         ]
       }
       filter_groups = [
-        [
-          {
-            events = ["push"]
-          },
-          {
-            file_paths = ["CHANGELOG.md"]
-          }
-        ],
-        [
-          {
-            events     = ["pull_request"]
-            pr_actions = ["opened", "edited", "synchronize"]
-            file_paths = [".*\\.py$"]
-            head_refs  = ["test-branch"]
-          }
-        ]
+        {
+          events     = ["push"]
+          file_paths = ["CHANGELOG.md"]
+        },
+        {
+          events     = ["pull_request"]
+          pr_actions = ["opened", "edited", "synchronize"]
+          file_paths = [".*\\.py$"]
+          head_refs  = ["test-branch"]
+        }
       ]
     }
   ]
