@@ -8,7 +8,7 @@ import ast
 import collections.abc
 import inspect
 import operator
-from typing import List
+from typing import List, Union
 
 
 log = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ def lambda_handler(event, context):
             (used to get filepaths that changed between head and base refs via PyGithub)
         - Filter groups, filter events, and CodeBuild override params must be specified in /opt/repo_cfg.json
     """
+
     payload = json.loads(event['requestPayload']['body'])
     event = event['requestPayload']['headers']['X-GitHub-Event']
     repo_name = payload['repository']['name']
@@ -53,30 +54,24 @@ def lambda_handler(event, context):
     validate_payload(payload, event, filter_groups)
 
     log.info(f'Starting CodeBuild project: {os.environ["CODEBUILD_NAME"]}')
-    try:
-        response = cb.start_build(
-            projectName = os.environ['CODEBUILD_NAME'],
-            sourceLocationOverride = payload['repository']['html_url'],
-            sourceTypeOverride = 'GITHUB',
-            **repo_cfg['codebuild_cfg']
-        )
-    except Exception as e:
-        raise LambdaException(json.dumps(
-            {
-                'type': e.__class__.__name__,
-                'message': str(e)
-            }
-        ))
     
-    return {'message': 'Request was successful'}
+    response = cb.start_build(
+        projectName = os.environ['CODEBUILD_NAME'],
+        sourceLocationOverride = payload['repository']['html_url'],
+        sourceTypeOverride = 'GITHUB',
+        **repo_cfg['codebuild_cfg']
+    )
+
+    return {'message': 'Build was successfully started'}
 
 def validate_event(event: str, valid_events: List[str]) -> None:
     """
     Checks if header event is equal to atleast one of the filter group events
     
-    :param event: Github Webhook event
+    :param event: Triggered Github event
     :param valid_events: Distinct events from all filter groups
     """
+
     #Must validate the payload event in case the user accidentally adds additional events via the Github UI
     if event not in valid_events:
         raise ClientException(
@@ -85,7 +80,15 @@ def validate_event(event: str, valid_events: List[str]) -> None:
             }
         )
 
-def validate_payload(payload, event, filter_groups):
+def validate_payload(payload: dict, event: str, filter_groups: List[dict])) -> None:
+    """
+    Checks if payload body passes atleast one filter group
+
+    :param payload: Github webhook payload
+    :param event: Triggered Github event
+    :param filter_groups: List of filters to check payload with
+    """
+
     github_token = ssm.get_parameter(Name=os.environ['GITHUB_TOKEN_SSM_KEY'], WithDecryption=True)['Parameter']['Value']
     gh = Github(github_token)
     repo = gh.get_repo(payload['repository']['full_name'])
@@ -112,7 +115,14 @@ def validate_payload(payload, event, filter_groups):
             }
         )
 
-def match_patterns(patterns, value):
+def match_patterns(patterns: List[str], value: Union[List[str], str]) -> bool:
+    """
+    Returns True if one pattern finds a match within the `value` param
+
+    :param patterns: List of regex patterns
+    :param value: string or list of strings to see if a pattern will match with
+    """
+
     if type(value) != list:
         value = [value]
     if patterns:
@@ -130,7 +140,14 @@ def match_patterns(patterns, value):
         log.debug('No filter pattern is defined')
         return True
 
-def lookup_value(items, value):
+def lookup_value(items: List[str], value: str) -> bool:
+    """
+    Returns True if `value` is within list
+
+    :param items: List to look up value in
+    :param value: Value to look up within list
+    """
+
     if value in items:
         log.debug('TRUE')
         return True
@@ -139,8 +156,16 @@ def lookup_value(items, value):
         log.debug(f'valid values: {items}')
         log.debug(f'actual value: {value}')
         return False
-    
-def validate_push(payload, filter_groups, repo):
+
+def validate_push(payload: Dict[Any], filter_groups: List[Dict[Any]], repo: github.Repository.Repository) -> bool:
+    """
+    Returns True if payload passes atleast one push related filter group
+
+    :param payload: Github webhook payload
+    :param filter_groups: List of filters to check payload with
+    :param repo: Triggered repository's PyGithub repository class object
+    """
+
     #gets filenames of files that between head commit and base commit
     diff_paths = [path.filename for path in repo.compare(payload['before'], payload['after']).files]
     
@@ -174,7 +199,15 @@ def validate_push(payload, filter_groups, repo):
             else: 
                 return True
 
-def validate_pr(payload, filter_groups, repo):
+def validate_pr(payload: Dict[Any], filter_groups: List[Dict[Any]], repo: github.Repository.Repository) -> bool:
+    """
+    Returns True if payload passes atleast one pull-request related filter group
+
+    :param payload: Github webhook payload
+    :param filter_groups: List of filters to check payload with
+    :param repo: Triggered repository's PyGithub repository class object
+    """
+
     #gets filenames of files that changed between PR head commit and base commit
     diff_paths = [path.filename for path in repo.compare(
         payload['pull_request']['base']['sha'], 
@@ -220,11 +253,6 @@ def validate_pr(payload, filter_groups, repo):
             else: 
                 return True
 
-class LambdaException(Exception):
-    pass
-
 class ClientException(Exception):
-    pass
-
-class ServerException(Exception):
+    """Wraps around client-related errors"""
     pass
