@@ -1,15 +1,3 @@
-variable "enabled" {
-  description = "Determines if module should create resources or destroy pre-existing resources managed by this module"
-  type        = bool
-  default     = true
-}
-
-variable "account_id" {
-  description = "AWS account id"
-  type        = number
-  default     = null
-}
-
 variable "common_tags" {
   description = "Tags to add to all resources"
   type        = map(string)
@@ -23,13 +11,13 @@ variable "common_tags" {
 variable "github_token_ssm_description" {
   description = "Github token SSM parameter description"
   type        = string
-  default     = "Github token to allow CodeBuild to clone target repos" #tfsec:ignore:GEN001
+  default     = "Github token used to give read access to the payload validator function to get file that differ between commits" #tfsec:ignore:GEN001
 }
 
 variable "github_token_ssm_key" {
-  description = "AWS SSM Parameter Store key used to retrieve or create the sensitive Github personal token to allow Codebuild project to clone target Github repos"
+  description = "AWS SSM Parameter Store key for sensitive Github personal token"
   type        = string
-  default     = "github-token-codebuild-clone-access" #tfsec:ignore:GEN001
+  default     = "read-acces-github-token" #tfsec:ignore:GEN001
 }
 
 variable "github_token_ssm_value" {
@@ -54,13 +42,13 @@ variable "create_github_secret_ssm_param" {
 }
 
 variable "github_secret_ssm_key" {
-  description = "SSM parameter store key for github webhook secret. Secret used within Lambda function for Github payload validation."
+  description = "SSM parameter store key for github webhook secret. Secret used within Lambda function for Github request validation."
   type        = string
   default     = "github-webhook-secret" #tfsec:ignore:GEN001 #tfsec:ignore:GEN003
 }
 
 variable "github_secret_ssm_value" {
-  description = "SSM parameter store value for github webhook secret. Secret used within Lambda function for Github payload validation."
+  description = "SSM parameter store value for github webhook secret. Secret used within Lambda function for Github request validation."
   type        = string
   default     = ""
   sensitive   = true
@@ -242,13 +230,6 @@ variable "codebuild_environment" {
   default = {}
 }
 
-variable "github_token" {
-  description = "Github Personal access token"
-  type        = string
-  default     = null
-  sensitive   = true
-}
-
 variable "codebuild_artifacts" {
   description = <<EOF
 Build project's primary output artifacts configuration
@@ -302,8 +283,8 @@ variable "codebuild_s3_log_bucket" {
   default     = null
 }
 
-variable "codebuild_s3_log_encryption_disabled" {
-  description = "Determines if encryption should be used for the build project's S3 logs"
+variable "codebuild_s3_log_encryption" {
+  description = "Determines if encryption should be disabled for the build project's S3 logs"
   type        = bool
   default     = false
 }

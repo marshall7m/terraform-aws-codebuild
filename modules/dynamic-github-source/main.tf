@@ -113,14 +113,30 @@ resource "aws_iam_policy" "lambda" {
 }
 
 module "codebuild" {
-  source      = "..//main"
+  source = "..//main"
+
   name        = var.codebuild_name
-  artifacts   = local.codebuild_artifacts
-  environment = local.codebuild_environment
+  description = var.codebuild_description
+
+  assumable_role_arns = var.codebuild_assumable_role_arns
+  artifacts           = local.codebuild_artifacts
+  environment         = local.codebuild_environment
+  build_timeout       = var.codebuild_timeout
+  cache               = var.codebuild_cache
+  secondary_artifacts = var.codebuild_secondary_artifacts
   build_source = {
     buildspec = coalesce(var.codebuild_buildspec, file("${path.module}/buildspec_placeholder.yaml"))
     type      = "NO_SOURCE"
   }
+
+  s3_logs                    = var.enable_codebuild_s3_logs
+  s3_log_key                 = var.codebuild_s3_log_key
+  s3_log_bucket              = var.codebuild_s3_log_bucket
+  s3_log_encryption_disabled = var.codebuild_s3_log_encryption
+  cw_logs                    = var.codebuild_cw_logs
+  cw_group_name              = var.codebuild_cw_group_name
+  cw_stream_name             = var.codebuild_cw_stream_name
+  role_arn                   = var.codebuild_role_arn
 }
 
 resource "aws_ssm_parameter" "github_token" {
