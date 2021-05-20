@@ -80,7 +80,7 @@ variable "build_timeout" {
 }
 
 variable "webhook_filter_groups" {
-  description = "Webhook filter groups to apply to the build. (only used when var.builds is null)"
+  description = "Webhook filter groups to apply to the build"
   type = list(list(object({
     pattern                 = string
     type                    = string
@@ -128,6 +128,12 @@ variable "source_token" {
   type        = string
   default     = null
   sensitive   = true
+}
+
+variable "source_version" {
+  description = "The version of the source input to be delivered to the build. Default to latest"
+  type = string
+  default = null
 }
 
 variable "build_tags" {

@@ -7,5 +7,3 @@ terraform.tfstate*
 __pycache__
 .wget-hsts
 .bash_history
-modules/dynamic-github-source/deps/*
-modules/dynamic-github-source/*.zip*

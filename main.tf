@@ -48,7 +48,7 @@ resource "aws_codebuild_project" "this" {
       content {
         status      = "ENABLED"
         stream_name = var.cw_stream_name
-        group_name  = var.cw_group_name
+        group_name  = cloudwatch_logs.this.name
       }
     }
 
@@ -70,13 +70,6 @@ resource "aws_codebuild_project" "this" {
     report_build_status = var.build_source.report_build_status
     buildspec           = var.build_source.buildspec
 
-    dynamic "auth" {
-      for_each = var.source_token != null || var.source_auth_ssm_param_name != null ? [1] : []
-      content {
-        type     = try(var.build_source.auth.type, "OAUTH")
-        resource = try(var.build_source.auth.resource, null)
-      }
-    }
     dynamic "git_submodules_config" {
       for_each = coalesce(var.build_source.git_submodules_config, {})
       content {
@@ -84,6 +77,8 @@ resource "aws_codebuild_project" "this" {
       }
     }
   }
+
+  source_version = var.source_version
 
   tags = merge(
     var.common_tags,
@@ -121,4 +116,11 @@ resource "aws_codebuild_source_credential" "this" {
   user_name   = var.source_user_name
   server_type = var.build_source.type
   token       = try(data.aws_ssm_parameter.this[0].value, var.source_token)
+}
+
+resource "aws_cloudwatch_log_group" "this" {
+  count = var.cw_logs ? 1 : 0
+  name = "/aws/codebuild/${var.name}"
+
+  tags = var.common_tags
 }
