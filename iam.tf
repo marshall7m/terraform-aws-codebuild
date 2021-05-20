@@ -53,8 +53,8 @@ data "aws_iam_policy_document" "permission" {
       sid    = "LogsToCW"
       effect = "Allow"
       resources = [
-        cloudwatch_logs.this.arn,
-        "${cloudwatch_logs.this.arn}:*"
+        aws_cloudwatch_log_group.this[0].arn,
+        "${aws_cloudwatch_log_group.this[0].arn}:*"
       ]
       actions = [
         "logs:CreateLogGroup",

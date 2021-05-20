@@ -48,7 +48,7 @@ resource "aws_codebuild_project" "this" {
       content {
         status      = "ENABLED"
         stream_name = var.cw_stream_name
-        group_name  = cloudwatch_logs.this.name
+        group_name  = aws_cloudwatch_log_group.this[0].name
       }
     }
 
