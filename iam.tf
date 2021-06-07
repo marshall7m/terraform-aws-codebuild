@@ -111,6 +111,19 @@ data "aws_iam_policy_document" "permission" {
   }
 
   dynamic "statement" {
+    for_each = var.environment.environment_variables != null ? [1] : []
+    content {
+      sid       = "SSMParameterStoreAccess"
+      effect    = "Allow"
+      resources = [for env_var in var.environment.environment_variables: env_var.name if env_var.type == "PARAMETER_STORE"]
+      actions = [
+        "ssm:DescribeParameters",
+        "ssm:GetParameters"
+      ]
+  }
+}
+
+  dynamic "statement" {
     for_each = coalesce(var.environment.privileged_mode, false) ? [1] : []
     content {
       sid       = "EcrAccess"

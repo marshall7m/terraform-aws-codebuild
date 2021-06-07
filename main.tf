@@ -111,11 +111,11 @@ data "aws_ssm_parameter" "this" {
 }
 
 resource "aws_codebuild_source_credential" "this" {
-  count       = var.source_token != null || var.source_auth_ssm_param_name != null ? 1 : 0
-  auth_type   = var.build_source.type == "Bitbucket" ? "BASIC_AUTH" : "PERSONAL_ACCESS_TOKEN"
-  user_name   = var.source_user_name
-  server_type = var.build_source.type
-  token       = try(data.aws_ssm_parameter.this[0].value, var.source_token)
+  count       = var.source_auth_token != null || var.source_auth_ssm_param_name != null ? 1 : 0
+  auth_type   = var.source_auth_type
+  user_name   = var.source_auth_user_name
+  server_type = var.source_auth_server_type
+  token       = try(data.aws_ssm_parameter.this[0].value, var.source_auth_token)
 }
 
 resource "aws_cloudwatch_log_group" "this" {

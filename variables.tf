@@ -117,13 +117,25 @@ variable "source_auth_ssm_param_name" {
   default     = null
 }
 
-variable "source_user_name" {
+variable "source_auth_user_name" {
   description = "Source Bitbucket user name (required only for Bitbucket)"
   type        = string
   default     = null
 }
 
-variable "source_token" {
+variable "source_auth_server_type" {
+  description = "Source provider type (e.g. `BITBUCKET`, `GITHUB`)"
+  type = string
+  default = null
+}
+
+variable "source_auth_type" {
+  description = "Authentification type to connect source provider)"
+  type = string
+  default = null
+}
+
+variable "source_auth_token" {
   description = "App password (Bitbucket source) or personal access token (Github/Github Enterprise)"
   type        = string
   default     = null
