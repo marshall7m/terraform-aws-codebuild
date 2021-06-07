@@ -111,11 +111,11 @@ data "aws_iam_policy_document" "permission" {
   }
 
   dynamic "statement" {
-    for_each = var.environment.environment_variables != null ? [1] : []
+    for_each = contains(var.environment.environment_variables[*].type, "PARAMETER_STORE") ? [1] : []
     content {
       sid       = "SSMParameterStoreAccess"
       effect    = "Allow"
-      resources = [for env_var in var.environment.environment_variables: env_var.name if env_var.type == "PARAMETER_STORE"]
+      resources = formatlist("arn:aws:ssm:${local.region}:${local.account_id}:parameter/%s", [for env_var in var.environment.environment_variables: env_var.name if env_var.type == "PARAMETER_STORE"])
       actions = [
         "ssm:DescribeParameters",
         "ssm:GetParameters"

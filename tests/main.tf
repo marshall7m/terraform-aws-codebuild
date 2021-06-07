@@ -54,6 +54,11 @@ module "mut_codebuild" {
         {
           name = "bar"
           value = "foo"
+        },
+        {
+          name = "zoo"
+          value = "baz"
+          type = "PARAMETER_STORE"
         }
       ]
     }
