@@ -36,7 +36,9 @@ variable "role_max_session_duration" {
 }
 
 variable "role_description" {
-  default = "Allows CodeBuild service to perform actions on your behalf"
+  description = "Build IAM role description"
+  type        = string
+  default     = "Allows CodeBuild service to perform actions on your behalf"
 }
 
 variable "role_force_detach_policies" {
@@ -49,6 +51,16 @@ variable "role_permissions_boundary" {
   description = "Permission boundary policy ARN used for CodeBuild service role"
   type        = string
   default     = ""
+}
+
+variable "role_policy_statements" {
+  description = "IAM policy statements to attach CodeBuild role policy"
+  type = list(object({
+    sid       = optional(string)
+    effect    = string
+    actions   = list(string)
+    resources = list(string)
+  }))
 }
 
 variable "role_tags" {
@@ -125,14 +137,14 @@ variable "source_auth_user_name" {
 
 variable "source_auth_server_type" {
   description = "Source provider type (e.g. `BITBUCKET`, `GITHUB`)"
-  type = string
-  default = null
+  type        = string
+  default     = null
 }
 
 variable "source_auth_type" {
   description = "Authentification type to connect source provider)"
-  type = string
-  default = null
+  type        = string
+  default     = null
 }
 
 variable "source_auth_token" {
@@ -144,8 +156,8 @@ variable "source_auth_token" {
 
 variable "source_version" {
   description = "The version of the source input to be delivered to the build. Default to latest"
-  type = string
-  default = null
+  type        = string
+  default     = null
 }
 
 variable "build_tags" {

@@ -120,7 +120,7 @@ resource "aws_codebuild_source_credential" "this" {
 
 resource "aws_cloudwatch_log_group" "this" {
   count = var.cw_logs ? 1 : 0
-  name = "/aws/codebuild/${var.name}"
+  name  = "/aws/codebuild/${var.name}"
 
   tags = var.common_tags
 }
