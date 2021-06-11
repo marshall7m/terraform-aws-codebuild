@@ -61,6 +61,7 @@ variable "role_policy_statements" {
     actions   = list(string)
     resources = list(string)
   }))
+  default = []
 }
 
 variable "role_tags" {
