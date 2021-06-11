@@ -111,7 +111,7 @@ data "aws_iam_policy_document" "permission" {
   }
 
   dynamic "statement" {
-    for_each = contains(var.environment.environment_variables[*].type, "PARAMETER_STORE") ? [1] : []
+    for_each = contains(try(var.environment.environment_variables[*].type, []), "PARAMETER_STORE") ? [1] : []
     content {
       sid       = "SSMParameterStoreAccess"
       effect    = "Allow"
