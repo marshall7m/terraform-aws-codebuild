@@ -111,7 +111,7 @@ data "aws_ssm_parameter" "source_auth_token" {
 }
 
 resource "aws_codebuild_source_credential" "this" {
-  count       = var.source_auth_token != null || var.source_auth_ssm_param_name != null ? 1 : 0
+  count       = var.create_source_auth ? 1 : 0
   auth_type   = var.source_auth_type
   user_name   = var.source_auth_user_name
   server_type = var.source_auth_server_type

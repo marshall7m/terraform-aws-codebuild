@@ -77,7 +77,6 @@ variable "role_tags" {
 variable "name" {
   description = "Build name (used also for codebuild policy name)"
   type        = string
-  default     = null
 }
 
 variable "description" {
@@ -124,8 +123,17 @@ see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/
   })
 }
 
+variable "create_source_auth" {
+  description = <<EOF
+Determines if a CodeBuild source credential resource should be created. Only one credential
+resource is needed/allowed per AWS account and region. See more at: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_codebuild.GitHubSourceCredentials.html
+EOF
+  type = bool
+  default = false
+}
+
 variable "source_auth_ssm_param_name" {
-  description = "AWS SSM Parameter Store key used to retrieve the sensitive build source authorization value (e.g. Github personal token for OAUTH authorization type)"
+  description = "AWS SSM Parameter Store key used to retrieve the CodeBuild source credential resource token value"
   type        = string
   default     = null
 }
