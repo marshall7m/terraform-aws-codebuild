@@ -115,7 +115,7 @@ data "aws_iam_policy_document" "permission" {
     content {
       sid       = "SSMParameterStoreAccess"
       effect    = "Allow"
-      resources = formatlist("arn:aws:ssm:${local.region}:${local.account_id}:parameter/%s", [for env_var in var.environment.environment_variables : env_var.name if env_var.type == "PARAMETER_STORE"])
+      resources = formatlist("arn:aws:ssm:${local.region}:${local.account_id}:parameter/%s", [for env_var in var.environment.environment_variables : env_var.value if env_var.type == "PARAMETER_STORE"])
       actions = [
         "ssm:DescribeParameters",
         "ssm:GetParameters"
