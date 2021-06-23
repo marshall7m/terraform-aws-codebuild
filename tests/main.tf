@@ -38,46 +38,46 @@ resource "github_repository_file" "test" {
 }
 
 module "mut_codebuild" {
-    source = "..//"
-    region = "us-west-2"
-    name = "${local.mut}-${random_id.default.id}"
-    artifacts = {
-        type = "NO_ARTIFACTS"
-    }
-    common_tags = {"foo" = "bar"}
-    environment = {
-      type = "LINUX_CONTAINER"
-      image = "aws/codebuild/standard:4.0"
-      compute_type = "BUILD_GENERAL1_SMALL"
-      priviledged_mode = true
-      environment_variables = [
-        {
-          name = "bar"
-          value = "foo"
-        },
-        {
-          name = "zoo"
-          value = "baz"
-          type = "PARAMETER_STORE"
-        }
-      ]
-    }
-
-    build_source = {
-      type = "GITHUB"
-      location        = github_repository.test.http_clone_url
-      buildspec = file("buildspec.yaml")
-    }
-    cache = {
-      type  = "LOCAL"
-      modes = ["LOCAL_DOCKER_LAYER_CACHE", "LOCAL_SOURCE_CACHE"]
-    }
-    webhook_filter_groups = [
-        [
-            {
-                type = "EVENT"
-                pattern = "PUSH"
-            }
-        ]
+  source = "..//"
+  region = "us-west-2"
+  name   = "${local.mut}-${random_id.default.id}"
+  artifacts = {
+    type = "NO_ARTIFACTS"
+  }
+  common_tags = { "foo" = "bar" }
+  environment = {
+    type             = "LINUX_CONTAINER"
+    image            = "aws/codebuild/standard:4.0"
+    compute_type     = "BUILD_GENERAL1_SMALL"
+    priviledged_mode = true
+    environment_variables = [
+      {
+        name  = "bar"
+        value = "foo"
+      },
+      {
+        name  = "zoo"
+        value = "baz"
+        type  = "PARAMETER_STORE"
+      }
     ]
+  }
+
+  build_source = {
+    type      = "GITHUB"
+    location  = github_repository.test.http_clone_url
+    buildspec = file("buildspec.yaml")
+  }
+  cache = {
+    type  = "LOCAL"
+    modes = ["LOCAL_DOCKER_LAYER_CACHE", "LOCAL_SOURCE_CACHE"]
+  }
+  webhook_filter_groups = [
+    [
+      {
+        type    = "EVENT"
+        pattern = "PUSH"
+      }
+    ]
+  ]
 }

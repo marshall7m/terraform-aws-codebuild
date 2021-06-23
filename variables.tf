@@ -128,8 +128,8 @@ variable "create_source_auth" {
 Determines if a CodeBuild source credential resource should be created. Only one credential
 resource is needed/allowed per AWS account and region. See more at: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_codebuild.GitHubSourceCredentials.html
 EOF
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "source_auth_ssm_param_name" {
