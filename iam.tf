@@ -124,9 +124,21 @@ data "aws_iam_policy_document" "permission" {
   }
 
   dynamic "statement" {
+    for_each = length(regexall("^[[:digit:]]{12}\\.dkr\\.ecr", var.environment.image)) > 0 ? [1] : []
+    content {
+      sid       = "UseEcrImageAccess"
+      effect    = "Allow"
+      resources = ["*"]
+      actions = [
+        "ecr:GetAuthorizationToken"
+      ]
+    }
+  }
+
+  dynamic "statement" {
     for_each = coalesce(var.environment.privileged_mode, false) ? [1] : []
     content {
-      sid       = "EcrAccess"
+      sid       = "BuildEcrImageAccess"
       effect    = "Allow"
       resources = ["*"]
       actions = [
