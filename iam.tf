@@ -123,6 +123,7 @@ data "aws_iam_policy_document" "permission" {
     }
   }
 
+  # AWS ECR pull permission
   dynamic "statement" {
     for_each = length(regexall("^[[:digit:]]{12}\\.dkr\\.ecr", var.environment.image)) > 0 ? [1] : []
     content {
@@ -130,11 +131,16 @@ data "aws_iam_policy_document" "permission" {
       effect    = "Allow"
       resources = ["*"]
       actions = [
-        "ecr:GetAuthorizationToken"
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchGetImage",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:CompleteLayerUpload",
+        "ecr:GetDownloadUrlForLayer"
       ]
     }
   }
 
+  # Docker build access
   dynamic "statement" {
     for_each = coalesce(var.environment.privileged_mode, false) ? [1] : []
     content {
