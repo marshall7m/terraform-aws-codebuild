@@ -107,7 +107,7 @@ Source configuration that will be loaded into the CodeBuild project's buildspec
 see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codebuild_project#argument-reference
     EOF
   type = object({
-    type = optional(string)
+    type = string
     auth = optional(object({
       type     = optional(string)
       resource = optional(string)
@@ -225,6 +225,29 @@ EOF
       credential          = string
       credential_provider = string
     }))
+  })
+}
+
+variable "secondary_build_source" {
+  description = <<EOF
+Secondary Source configurations.
+see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codebuild_project#argument-reference
+    EOF
+  type = object({
+    source_identifier = string
+    type              = optional(string)
+    auth = optional(object({
+      type     = optional(string)
+      resource = optional(string)
+    }))
+    buildspec       = optional(string)
+    git_clone_depth = optional(string)
+    git_submodules_config = optional(object({
+      fetch_submodules = bool
+    }))
+    insecure_ssl        = optional(bool)
+    location            = optional(string)
+    report_build_status = optional(bool)
   })
 }
 
