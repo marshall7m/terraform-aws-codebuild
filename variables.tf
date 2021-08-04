@@ -29,6 +29,12 @@ variable "role_path" {
   default     = "/"
 }
 
+variable "role_policy_arns" {
+  description = "List of IAM policy ARNs to attach to the role"
+  type        = list(string)
+  default     = []
+}
+
 variable "role_max_session_duration" {
   description = "Max session duration (seconds) the role can be assumed for"
   default     = 3600

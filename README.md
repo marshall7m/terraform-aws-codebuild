@@ -39,6 +39,7 @@
 | role\_max\_session\_duration | Max session duration (seconds) the role can be assumed for | `number` | `3600` | no |
 | role\_path | Path to create policy | `string` | `"/"` | no |
 | role\_permissions\_boundary | Permission boundary policy ARN used for CodeBuild service role | `string` | `""` | no |
+| role\_policy\_arns | List of IAM policy ARNs to attach to the role | `list(string)` | `[]` | no |
 | role\_policy\_statements | IAM policy statements to attach CodeBuild role policy | <pre>list(object({<br>    sid       = optional(string)<br>    effect    = string<br>    actions   = list(string)<br>    resources = list(string)<br>  }))</pre> | `[]` | no |
 | role\_tags | Tags to add to CodeBuild service role | `map(string)` | `{}` | no |
 | s3\_log\_bucket | Name of S3 bucket where the build project's logs will be stored | `string` | `null` | no |
