@@ -240,7 +240,7 @@ Secondary Source configurations.
 see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codebuild_project#argument-reference
     EOF
   type = object({
-    source_identifier = string
+    source_identifier = optional(string)
     type              = optional(string)
     auth = optional(object({
       type     = optional(string)
@@ -255,6 +255,7 @@ see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/
     location            = optional(string)
     report_build_status = optional(bool)
   })
+  default = null
 }
 
 variable "secondary_artifacts" {

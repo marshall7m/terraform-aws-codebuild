@@ -78,18 +78,22 @@ resource "aws_codebuild_project" "this" {
     }
   }
 
-  secondary_sources {
-    type                = var.secondary_build_source.type
-    location            = var.secondary_build_source.location
-    git_clone_depth     = var.secondary_build_source.git_clone_depth
-    insecure_ssl        = var.secondary_build_source.insecure_ssl
-    report_build_status = var.secondary_build_source.report_build_status
-    buildspec           = var.secondary_build_source.buildspec
+  dynamic "secondary_sources" {
+    for_each = var.secondary_build_source != null ? [1] : []
+    content {
+      source_identifier   = var.secondary_build_source.source_identifier
+      type                = var.secondary_build_source.type
+      location            = var.secondary_build_source.location
+      git_clone_depth     = var.secondary_build_source.git_clone_depth
+      insecure_ssl        = var.secondary_build_source.insecure_ssl
+      report_build_status = var.secondary_build_source.report_build_status
+      buildspec           = var.secondary_build_source.buildspec
 
-    dynamic "git_submodules_config" {
-      for_each = coalesce(var.secondary_build_source.git_submodules_config, {})
-      content {
-        fetch_submodules = var.secondary_build_source.git_submodules_config.fetch_submodules
+      dynamic "git_submodules_config" {
+        for_each = coalesce(var.secondary_build_source.git_submodules_config, {})
+        content {
+          fetch_submodules = var.secondary_build_source.git_submodules_config.fetch_submodules
+        }
       }
     }
   }

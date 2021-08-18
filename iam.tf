@@ -188,7 +188,7 @@ resource "aws_iam_policy" "permission" {
 resource "aws_iam_role_policy_attachment" "permission" {
   count      = var.role_arn == null ? length(concat(var.role_policy_arns, [aws_iam_policy.permission[0].arn])) : 0
   role       = aws_iam_role.this[0].name
-  policy_arn = concat(var.role_policy_arns, [aws_iam_policy.permission[0].arn])
+  policy_arn = concat(var.role_policy_arns, [aws_iam_policy.permission[0].arn])[count.index]
 }
 
 resource "aws_iam_role" "this" {
