@@ -317,3 +317,13 @@ variable "role_arn" {
   type        = string
   default     = null
 }
+
+variable "vpc_config" {
+  description = "AWS VPC associated with CodeBuild project"
+  type = object({
+    vpc_id             = string
+    subnets            = list(string)
+    security_group_ids = list(string)
+  })
+  default = null
+}

@@ -54,6 +54,7 @@
 | source\_auth\_type | Authentification type to connect source provider) | `string` | `null` | no |
 | source\_auth\_user\_name | Source Bitbucket user name (required only for Bitbucket) | `string` | `null` | no |
 | source\_version | The version of the source input to be delivered to the build. Default to latest | `string` | `null` | no |
+| vpc\_config | AWS VPC associated with CodeBuild project | <pre>object({<br>    vpc_id             = string<br>    subnets            = list(string)<br>    security_group_ids = list(string)<br>  })</pre> | `null` | no |
 | webhook\_filter\_groups | Webhook filter groups to apply to the build | <pre>list(list(object({<br>    pattern                 = string<br>    type                    = string<br>    exclude_matched_pattern = optional(bool)<br>  })))</pre> | `[]` | no |
 
 ## Outputs
