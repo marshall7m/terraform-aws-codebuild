@@ -38,7 +38,7 @@ resource "github_repository_file" "test" {
 }
 
 module "mut_codebuild" {
-  source = "..//"
+  source = "../../"
   region = "us-west-2"
   name   = "${local.mut}-${random_id.default.id}"
   artifacts = {
@@ -66,7 +66,7 @@ module "mut_codebuild" {
   build_source = {
     type      = "GITHUB"
     location  = github_repository.test.http_clone_url
-    buildspec = file("buildspec.yaml")
+    buildspec = file("${path.module}/buildspec.yaml")
   }
   cache = {
     type  = "LOCAL"
