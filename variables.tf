@@ -238,6 +238,7 @@ variable "secondary_build_source" {
   description = <<EOF
 Secondary Source configurations.
 see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codebuild_project#argument-reference
+`source_version` attribute is a separate configuration block within `aws_codebuild_project` but is added here since both blocks are similar.
     EOF
   type = object({
     source_identifier = optional(string)
@@ -254,6 +255,7 @@ see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/
     insecure_ssl        = optional(bool)
     location            = optional(string)
     report_build_status = optional(bool)
+    source_version      = optional(string)
   })
   default = null
 }

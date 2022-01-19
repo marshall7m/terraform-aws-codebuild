@@ -109,6 +109,14 @@ resource "aws_codebuild_project" "this" {
 
   source_version = var.source_version
 
+  dynamic "secondary_source_version" {
+    for_each = var.secondary_build_source != null ? [1] : []
+    content {
+      source_identifier = var.secondary_build_source.source_identifier
+      source_version    = var.secondary_build_source.source_version
+    }
+  }
+
   tags = merge(
     var.common_tags,
     var.build_tags
