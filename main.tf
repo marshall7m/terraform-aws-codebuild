@@ -42,6 +42,15 @@ resource "aws_codebuild_project" "this" {
     }
   }
 
+  dynamic "cache" {
+    for_each = var.cache != null ? [1] : []
+    content {
+      location = var.cache.location
+      modes    = var.cache.modes
+      type     = var.cache.type
+    }
+  }
+
   logs_config {
     dynamic "cloudwatch_logs" {
       for_each = var.cw_logs ? [1] : []
