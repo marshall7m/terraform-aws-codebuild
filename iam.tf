@@ -167,7 +167,7 @@ data "aws_iam_policy_document" "permission" {
   }
 
   dynamic "statement" {
-    for_each = toset(var.role_policy_statements)
+    for_each = var.role_policy_statements
     content {
       sid       = statement.value.sid
       effect    = statement.value.effect
