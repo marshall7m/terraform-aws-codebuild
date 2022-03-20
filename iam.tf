@@ -25,7 +25,7 @@ data "aws_iam_policy_document" "permission" {
   statement {
     effect = "Allow"
     resources = [
-      "arn:aws:codebuild:${local.region}:${local.account_id}:report-group/${aws_codebuild_project.this.name}-*"
+      "arn:aws:codebuild:${local.region}:${local.account_id}:report-group/${var.name}-*"
     ]
     actions = [
       "codebuild:CreateReportGroup",
@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "permission" {
   statement {
     effect = "Allow"
     resources = [
-      "arn:aws:codebuild:${local.region}:${local.account_id}:project/${aws_codebuild_project.this.name}"
+      "arn:aws:codebuild:${local.region}:${local.account_id}:project/${var.name}"
     ]
     actions = [
       "codebuild:StartBuild",

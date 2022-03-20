@@ -2,7 +2,7 @@ resource "aws_codebuild_project" "this" {
   name          = var.name
   description   = var.description
   build_timeout = var.build_timeout
-  service_role  = var.role_arn != null ? var.role_arn : try(aws_iam_role.this[0].arn, null)
+  service_role  = var.role_arn != null ? var.role_arn : aws_iam_role.this[0].arn
 
   artifacts {
     type                   = var.artifacts.type
