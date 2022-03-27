@@ -167,6 +167,44 @@ data "aws_iam_policy_document" "permission" {
   }
 
   dynamic "statement" {
+    for_each = var.vpc_config != null ? [1] : []
+    content {
+      sid    = "VPCAcess"
+      effect = "Allow"
+      actions = [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeDhcpOptions",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeVpcs"
+      ]
+      resources = ["*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.vpc_config != null ? [1] : []
+    content {
+      effect    = "Allow"
+      actions   = ["ec2:CreateNetworkInterfacePermission"]
+      resources = ["arn:aws:ec2:${local.aws_region}:${local.account_id}:network-interface/*"]
+      condition {
+        test     = "StringEquals"
+        variable = "ec2:AuthorizedService"
+        values   = ["codebuild.amazonaws.com"]
+      }
+
+      condition {
+        test     = "ArnEquals"
+        variable = "ec2:Subnet"
+        values   = [for subnet in var.codebuild_vpc_config.subnets : "arn:aws:ec2:${local.aws_region}:${local.account_id}:subnet/${subnet}"]
+      }
+    }
+  }
+
+  dynamic "statement" {
     for_each = var.role_policy_statements
     content {
       sid       = statement.value.sid
