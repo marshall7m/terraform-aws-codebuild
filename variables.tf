@@ -119,7 +119,7 @@ see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/
       resource = optional(string)
     }))
     buildspec       = optional(string)
-    git_clone_depth = optional(string)
+    git_clone_depth = optional(number)
     git_submodules_config = optional(object({
       fetch_submodules = bool
     }))
