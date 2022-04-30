@@ -80,8 +80,8 @@ resource "aws_codebuild_project" "this" {
     buildspec           = var.build_source.buildspec
 
     build_status_config {
-      context = var.build_source.build_status_config.context
-      target_url = var.build_source.build_status_config.target_url
+      context = try(var.secondary_build_source.build_status_config.context, null)
+      target_url = try(var.secondary_build_source.build_status_config.target_url, null)
     }
 
     dynamic "git_submodules_config" {
@@ -104,8 +104,8 @@ resource "aws_codebuild_project" "this" {
       buildspec           = var.secondary_build_source.buildspec
 
       build_status_config {
-        context = var.secondary_build_source.build_status_config.context
-        target_url = var.secondary_build_source.build_status_config.target_url
+        context = try(var.secondary_build_source.build_status_config.context, null)
+        target_url = try(var.secondary_build_source.build_status_config.target_url, null)
       }
 
       dynamic "git_submodules_config" {
