@@ -76,6 +76,7 @@ resource "aws_codebuild_project" "this" {
     location            = var.build_source.location
     git_clone_depth     = var.build_source.git_clone_depth
     insecure_ssl        = var.build_source.insecure_ssl
+    build_status_config = var.build_source.build_status_config
     report_build_status = var.build_source.report_build_status
     buildspec           = var.build_source.buildspec
 
@@ -95,6 +96,7 @@ resource "aws_codebuild_project" "this" {
       location            = var.secondary_build_source.location
       git_clone_depth     = var.secondary_build_source.git_clone_depth
       insecure_ssl        = var.secondary_build_source.insecure_ssl
+      build_status_config = var.build_source.build_status_config
       report_build_status = var.secondary_build_source.report_build_status
       buildspec           = var.secondary_build_source.buildspec
 
