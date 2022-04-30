@@ -79,9 +79,13 @@ resource "aws_codebuild_project" "this" {
     report_build_status = var.build_source.report_build_status
     buildspec           = var.build_source.buildspec
 
-    build_status_config {
-      context = try(var.secondary_build_source.build_status_config.context, null)
-      target_url = try(var.secondary_build_source.build_status_config.target_url, null)
+    dynamic "build_status_config" {
+      for_each = var.build_source.build_status_config != null ? [1] : []
+      content {
+        context = var.build_source.build_status_config.context
+        # codebuild requires target_url if build_status_config block is defined and doesn't allow for empty "" or " " so CODEBUILD_PUBLIC_BUILD_URL will be used
+        target_url = coalesce(var.build_source.build_status_config.target_url, "$CODEBUILD_PUBLIC_BUILD_URL")
+      }
     }
 
     dynamic "git_submodules_config" {
@@ -103,9 +107,12 @@ resource "aws_codebuild_project" "this" {
       report_build_status = var.secondary_build_source.report_build_status
       buildspec           = var.secondary_build_source.buildspec
 
-      build_status_config {
-        context = try(var.secondary_build_source.build_status_config.context, null)
-        target_url = try(var.secondary_build_source.build_status_config.target_url, null)
+      dynamic "build_status_config" {
+        for_each = var.secondary_build_source.build_status_config != null ? [1] : []
+        content {
+          context = var.secondary_build_source.build_status_config.context
+          target_url = coalesce(var.secondary_build_source.build_status_config.target_url, "$CODEBUILD_PUBLIC_BUILD_URL")
+        }
       }
 
       dynamic "git_submodules_config" {
