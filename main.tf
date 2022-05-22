@@ -110,7 +110,7 @@ resource "aws_codebuild_project" "this" {
       dynamic "build_status_config" {
         for_each = var.secondary_build_source.build_status_config != null ? [1] : []
         content {
-          context = var.secondary_build_source.build_status_config.context
+          context    = var.secondary_build_source.build_status_config.context
           target_url = coalesce(var.secondary_build_source.build_status_config.target_url, "$CODEBUILD_PUBLIC_BUILD_URL")
         }
       }

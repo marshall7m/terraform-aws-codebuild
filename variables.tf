@@ -127,7 +127,7 @@ see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/
     location            = optional(string)
     report_build_status = optional(bool)
     build_status_config = optional(object({
-      context = optional(string)
+      context    = optional(string)
       target_url = optional(string)
     }))
   })
@@ -260,10 +260,10 @@ see for more info: https://registry.terraform.io/providers/hashicorp/aws/latest/
     location            = optional(string)
     report_build_status = optional(bool)
     build_status_config = optional(object({
-      context = optional(string)
+      context    = optional(string)
       target_url = optional(string)
     }))
-    source_version      = optional(string)
+    source_version = optional(string)
   })
   default = null
 }
